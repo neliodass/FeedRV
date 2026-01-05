@@ -1,0 +1,65 @@
+############################
+# GLOBAL
+############################
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+
+############################
+# PYTHON
+############################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.pyre/
+ruff_cache/
+coverage.xml
+htmlcov/
+.dist-info/
+
+# Logs
+*.log
+
+############################
+# NEXT.JS / NODE
+############################
+node_modules/
+.next/
+out/
+build/
+
+# npm / yarn / pnpm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Turbo / Nx
+.turbo/
+.nx/
+
+############################
+# IDE / EDITORS
+############################
+.vscode/
+.idea/
+*.swp
+*.swo
+
+############################
+# GIT
+############################
+*.orig
