@@ -5,10 +5,10 @@ from sqlmodel import SQLModel, Field,Column,JSON,Relationship
 
 class ItemTagLink(SQLModel, table=True):
     item_id: Optional[int] = Field(
-        default=None, foreign_key="item.id", primary_key=True
+        default=None, foreign_key="item.id", primary_key=True,ondelete="CASCADE"
     )
     tag_id: Optional[int] = Field(
-        default=None, foreign_key="tag.id", primary_key=True
+        default=None, foreign_key="tag.id", primary_key=True,ondelete="CASCADE"
     )
 class Tag(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -21,6 +21,7 @@ class Item(SQLModel, table=True):
     title: str
     source_type: str # youtube, article, reddit,rss, other
     created_at: datetime = Field(default_factory=datetime.now)
+    creator: str
 
     #AI content fields
     summary: Optional[str] = None
@@ -32,7 +33,7 @@ class Item(SQLModel, table=True):
     #vector embeddings
     embedding: Optional[list[float]] = Field(default=None,sa_column=Column(Vector(768)))
 
-    tags: List[Tag] = Relationship(back_populates="items", link_model=ItemTagLink)
+    tags: List[Tag] = Relationship(back_populates="items", link_model=ItemTagLink,sa_relationship_kwargs={"cascade":"all, delete"})
 class ItemPublic(SQLModel):
     id: int
     url: str
