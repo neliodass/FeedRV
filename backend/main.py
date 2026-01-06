@@ -1,3 +1,4 @@
+from botocore.configloader import raw_config_parse
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlmodel import select, Session as SQLSession
@@ -5,6 +6,7 @@ from typing import List
 
 from app.database import init_db, get_session, engine
 from app.models import Item, Tag, ItemTagLink,ItemPublic
+from app.scraper import scrape_content
 from app.services import process_new_link
 
 from contextlib import asynccontextmanager
@@ -28,8 +30,8 @@ async def create_item(url: str, session: SQLSession = Depends(get_session)):
         raise HTTPException(status_code=400, detail="Ten link został już zapisany.")
 
     try:
-
-        ai_data, embedding = await process_new_link(url, raw_content="Treść do pobrania...")
+        raw_content = await scrape_content(url)
+        ai_data, embedding = await process_new_link(url, raw_content[:5000])
         new_item = Item(
             url=url,
             title=ai_data.title,
