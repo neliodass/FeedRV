@@ -33,3 +33,13 @@ class Item(SQLModel, table=True):
     embedding: Optional[list[float]] = Field(default=None,sa_column=Column(Vector(768)))
 
     tags: List[Tag] = Relationship(back_populates="items", link_model=ItemTagLink)
+class ItemPublic(SQLModel):
+    id: int
+    url: str
+    title: str
+    source_type: str
+    created_at: datetime
+    summary: Optional[str]
+    priority: int
+    tags: List[Tag]
+    item_metadata: dict

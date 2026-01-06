@@ -1,7 +1,7 @@
 import os
 from sqlmodel import create_engine,Session,text,SQLModel
 DATABASE_URL = os.getenv("DATABASE_URL","postgresql://postgres:devpassword@db:5432/feedrv")
-
+from app.models import Item, Tag, ItemTagLink
 engine = create_engine(DATABASE_URL)
 def init_db():
     with Session(engine) as session:

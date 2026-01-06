@@ -21,7 +21,7 @@ services:
       - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://postgres:devpassword@db:5432/feedrv
-      - LLM_API_KEY=${LLM_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     ports:
       - "8000:8000"
     depends_on:
