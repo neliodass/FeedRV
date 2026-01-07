@@ -23,6 +23,8 @@ class Item(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     creator: str
 
+    status:str =  Field(default='pending')
+
     #AI content fields
     summary: Optional[str] = None
     priority: int = Field(default=1,ge=1,le=10) # 1-10

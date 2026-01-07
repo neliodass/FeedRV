@@ -37,6 +37,7 @@ async def process_item_in_background(item_id: int, url: str):
             item.creator = ai_data.creator
             item.priority = ai_data.priority
             item.embedding = embedding
+            item.status = 'completed'
             for tag_name in ai_data.tags:
                 tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
                 if not tag: tag = Tag(name=tag_name)
@@ -45,6 +46,11 @@ async def process_item_in_background(item_id: int, url: str):
             session.add(item)
             session.commit()
         except Exception as e:
+            item = session.get(Item, item_id)
+            item.status = 'failed'
+            session.add(item)
+            session.commit()
+
             print(f"Error processing item {item_id} in background: {str(e)}")
 @app.post("/items/", response_model=ItemPublic)
 async def create_item(url: str,background_tasks:BackgroundTasks, session: SQLSession = Depends(get_session)):
@@ -58,6 +64,7 @@ async def create_item(url: str,background_tasks:BackgroundTasks, session: SQLSes
         source_type="pending",
         creator="pending",
         priority=1
+
     )
     session.add(new_item)
     session.commit()
