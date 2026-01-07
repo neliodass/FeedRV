@@ -22,6 +22,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:devpassword@db:5432/feedrv
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     ports:
       - "8000:8000"
     depends_on:

@@ -40,6 +40,7 @@ class ItemPublic(SQLModel):
     title: str
     source_type: str
     created_at: datetime
+    creator: str
     summary: Optional[str]
     priority: int
     tags: List[Tag]

@@ -34,6 +34,7 @@ async def process_item_in_background(item_id: int, url: str):
             item.title = ai_data.title
             item.summary = ai_data.summary
             item.source_type = ai_data.source_type
+            item.creator = ai_data.creator
             item.priority = ai_data.priority
             item.embedding = embedding
             for tag_name in ai_data.tags:
@@ -55,7 +56,7 @@ async def create_item(url: str,background_tasks:BackgroundTasks, session: SQLSes
         title="Analyzing...",
         summary="AI analysis in progress... ",
         source_type="pending",
-        owner="pending",
+        creator="pending",
         priority=1
     )
     session.add(new_item)
@@ -69,3 +70,14 @@ async def create_item(url: str,background_tasks:BackgroundTasks, session: SQLSes
 async def read_items(session: SQLSession = Depends(get_session)):
     items = session.exec(select(Item)).all()
     return items
+
+
+@app.delete("/items/{item_id}", status_code=204)
+async def delete_item(item_id: int, session: SQLSession = Depends(get_session)):
+    item = session.get(Item, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Cant find item with given ID.")
+
+    session.delete(item)
+    session.commit()
+    return None
