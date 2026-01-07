@@ -1,12 +1,12 @@
 from botocore.configloader import raw_config_parse
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlmodel import select, Session as SQLSession
-from typing import List
+from typing import List, Optional, Tuple
 
 from app.database import init_db, get_session, engine
 from app.models import Item, Tag, ItemTagLink,ItemPublic
 from app.scraper import scrape_content
-from app.services import process_new_link
+from app.services import process_new_link, get_embedding
 
 from contextlib import asynccontextmanager
 @asynccontextmanager
@@ -79,6 +79,23 @@ async def read_items(session: SQLSession = Depends(get_session)):
     return items
 
 
+@app.get("/items/search/", response_model=List[Tuple[ItemPublic,float]])
+async def hybrid_search(
+        q: str,
+        source_type: Optional[str] = None,
+        session: SQLSession = Depends(get_session)
+):
+    query_vector = await get_embedding(q)
+    distance_expr = Item.embedding.cosine_distance(query_vector)
+    statement = (select(Item,distance_expr)
+                 .where(Item.status == 'completed'))
+    if source_type:
+        statement = statement.where(Item.source_type == source_type)
+
+    statement = statement.order_by(distance_expr).limit(10)
+    results = session.exec(statement).all()
+
+    return [(item, round(1 - dist, 4)) for item, dist in results]
 @app.delete("/items/{item_id}", status_code=204)
 async def delete_item(item_id: int, session: SQLSession = Depends(get_session)):
     item = session.get(Item, item_id)
