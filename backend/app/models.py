@@ -22,8 +22,11 @@ class Item(SQLModel, table=True):
     source_type: str # youtube, article, reddit,rss, other
     created_at: datetime = Field(default_factory=datetime.now)
     creator: str
-
     status:str =  Field(default='pending')
+
+    #consumed section
+    is_consumed: bool = Field(default=False)
+    consumed_at: Optional[datetime] = Field(default=None)
 
     #AI content fields
     summary: Optional[str] = None
@@ -47,3 +50,9 @@ class ItemPublic(SQLModel):
     priority: int
     tags: List[Tag]
     item_metadata: dict
+    is_consumed: bool
+
+class TagPublic(SQLModel):
+    id: int
+    name: str
+    itemsCount: int

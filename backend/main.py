@@ -37,6 +37,8 @@ async def process_item_in_background(item_id: int, url: str):
             item.creator = ai_data.creator
             item.priority = ai_data.priority
             item.embedding = embedding
+            item.is_research = False
+            item.consumed_at = None
             item.status = 'completed'
             for tag_name in ai_data.tags:
                 tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
@@ -74,21 +76,28 @@ async def create_item(url: str,background_tasks:BackgroundTasks, session: SQLSes
 
 
 @app.get("/items/", response_model=List[ItemPublic])
-async def read_items(session: SQLSession = Depends(get_session)):
-    items = session.exec(select(Item)).all()
+async def read_items(items_per_batch = 10,page=1,session: SQLSession = Depends(get_session)):
+    offset = (page - 1) * items_per_batch
+    statement = select(Item).offset(offset).limit(items_per_batch)
+    items = session.exec(statement).all()
     return items
+
+
 
 
 @app.get("/items/search/", response_model=List[Tuple[ItemPublic,float]])
 async def hybrid_search(
         q: str,
         source_type: Optional[str] = None,
+        include_consumed: bool = False,
         session: SQLSession = Depends(get_session)
 ):
     query_vector = await get_embedding(q)
     distance_expr = Item.embedding.cosine_distance(query_vector)
     statement = (select(Item,distance_expr)
                  .where(Item.status == 'completed'))
+    if not include_consumed:
+        statement = statement.where(Item.is_consumed == False)
     if source_type:
         statement = statement.where(Item.source_type == source_type)
 
