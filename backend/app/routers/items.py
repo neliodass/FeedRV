@@ -5,9 +5,10 @@ from sqlmodel import select, Session as SQLSession
 
 from app.auth import get_current_active_user
 from app.database import get_session, engine
-from app.models import Item, Tag, ItemPublic, User
+from app.models import Item, Tag, ItemPublic, User, ItemUpdate
 from app.scraper import scrape_content
 from app.services import process_new_link, get_embedding
+from datetime import datetime, UTC
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -136,3 +137,61 @@ async def delete_item(
     session.delete(item)
     session.commit()
 
+
+@router.patch("/{item_id}/consume", response_model=ItemPublic)
+async def toggle_consume_status(
+        item_id: int,
+        session: SQLSession = Depends(get_session),
+        is_consumed: Optional[bool] = True,
+        current_user: User = Depends(get_current_active_user)
+):
+    item = session.get(Item, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Nie znaleziono elementu o podanym ID.")
+    if item.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Nie masz uprawnień do edycji tego elementu.")
+
+    if item.is_consumed!= is_consumed:
+        item.is_consumed = not item.is_consumed
+
+    if item.is_consumed:
+        item.consumed_at = datetime.now()
+    else:
+        item.consumed_at = None
+
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+
+    return item
+
+
+@router.patch("/{item_id}", response_model=ItemPublic)
+async def update_item(
+        item_id: int,
+        item_update: ItemUpdate,
+        session: SQLSession = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
+):
+    db_item = session.get(Item, item_id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Nie znaleziono elementu.")
+
+    if db_item.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Brak uprawnień do edycji tego elementu.")
+
+    update_data = item_update.model_dump(exclude_unset=True)
+
+    if "is_consumed" in update_data:
+        if update_data["is_consumed"]:
+            db_item.consumed_at = datetime.now()
+        else:
+            db_item.consumed_at = None
+
+    for key, value in update_data.items():
+        setattr(db_item, key, value)
+
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
+    return db_item

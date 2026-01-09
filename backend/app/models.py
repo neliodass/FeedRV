@@ -64,7 +64,11 @@ class ItemPublic(SQLModel):
     tags: List[Tag]
     item_metadata: dict
     is_consumed: bool
-
+class ItemUpdate(SQLModel):
+    title: Optional[str] = None
+    priority: Optional[int] = None
+    is_consumed: Optional[bool] = None
+    user_note: Optional[str] = None
 class TagPublic(SQLModel):
     id: int
     name: str
