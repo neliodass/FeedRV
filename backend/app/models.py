@@ -3,6 +3,15 @@ from typing import Optional,List
 from pgvector.sqlalchemy import Vector
 from sqlmodel import SQLModel, Field,Column,JSON,Relationship
 
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True)
+    hashed_password: str
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    items: List["Item"] = Relationship(back_populates="user")
+
 class ItemTagLink(SQLModel, table=True):
     item_id: Optional[int] = Field(
         default=None, foreign_key="item.id", primary_key=True,ondelete="CASCADE"
@@ -23,6 +32,10 @@ class Item(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     creator: str
     status:str =  Field(default='pending')
+
+    # User relationship
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    user: Optional[User] = Relationship(back_populates="items")
 
     #consumed section
     is_consumed: bool = Field(default=False)
@@ -56,3 +69,21 @@ class TagPublic(SQLModel):
     id: int
     name: str
     itemsCount: int
+
+class UserCreate(SQLModel):
+    email: str
+    password: str
+
+class UserPublic(SQLModel):
+    id: int
+    email: str
+    is_active: bool
+    created_at: datetime
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str
+
+class TokenData(SQLModel):
+    email: Optional[str] = None
+
