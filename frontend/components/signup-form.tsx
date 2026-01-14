@@ -1,3 +1,4 @@
+"use client"
 import { GalleryVerticalEnd } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -11,14 +12,66 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link";
+import {useRouter} from "next/navigation";
+import {useState} from "react";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+    const router = useRouter()
+    const [username, setUsername] = useState<string>("")
+    const [password, setPassword] = useState<string>("")
+    const [password_repeat, setPasswordRepeat] = useState<string>("")
+    const [loading, setLoading] = useState<boolean>(false)
+    const [error, setError] = useState<string>("")
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault()
+        if(password !== password_repeat) {
+            setError("Hasła nie są identyczne")
+            return
+        }
+
+        setLoading(true)
+        setError("")
+        try {
+            const res = await fetch('http://localhost:8000/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: username,
+                    password: password,
+                    password_confirm: password_repeat,
+                }),
+            })
+            if (!res.ok) {
+                let msg = await res.text()
+                try {
+                    const json = JSON.parse(msg)
+                    msg = json.detail ?? json.message ?? JSON.stringify(json)
+                } catch {
+                }
+                setError(`Błąd rejestracji: ${msg}`)
+                setLoading(false)
+                return
+            }
+            const data = await res.json()
+            if (data) {
+                router.push('/login')
+
+            }
+        } catch (error) {
+            setError(`Błąd sieci: ${error}`)
+        }
+        setLoading(false)
+
+
+    }
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form>
+      <form onSubmit={handleSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <a
@@ -35,11 +88,14 @@ export function SignupForm({
               Already have an account? <Link href="/login" className="underline">Sign in</Link>
             </FieldDescription>
           </div>
+            {error && <p className="text-red-500 text-center text-sm font-medium">{error}</p>}
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
               id="email"
               type="email"
+              value={username}
+                onChange={(e) => setUsername(e.target.value)}
               placeholder="m@example.com"
               required
             />
@@ -50,6 +106,8 @@ export function SignupForm({
                     id="password"
                     type="password"
                     placeholder="Your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                 />
             </Field>
@@ -59,11 +117,13 @@ export function SignupForm({
                     id="password_repeat"
                     type="password"
                     placeholder="Repeat your password"
+                    value={password_repeat}
+                    onChange={(e) => setPasswordRepeat(e.target.value)}
                     required
                 />
             </Field>
           <Field>
-            <Button className={"w-full"} type="submit">Create Account</Button>
+            <Button className={"w-full"} type="submit" disabled={loading}>{loading? "Signing up...":"Create Account"}</Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
           <Field className="grid gap-4 sm:grid-cols-2">
