@@ -1,4 +1,3 @@
-"use client";
 import { GalleryVerticalEnd } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -12,66 +11,14 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link";
-import {useRouter} from "next/navigation";
-import {useState} from "react";
 
-export function LoginForm({
+export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-    const router = useRouter()
-    const [username, setUsername] = useState<string>("")
-    const [password, setPassword] = useState<string>("")
-    const [loading, setLoading] = useState<boolean>(false)
-    const [error, setError] = useState<string>("")
-
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault()
-        setLoading(true)
-        setError("")
-        try {
-            const body = new URLSearchParams({
-                username,
-                password,
-            }).toString()
-
-
-            const res = await fetch('http://localhost:8000/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body,
-            })
-            if (!res.ok) {
-                let msg = await res.text()
-                try {
-                    const json = JSON.parse(msg)
-                    msg = json.detail ?? json.message ?? JSON.stringify(json)
-                } catch {
-                }
-                setError(`Błąd logowania: ${msg}`)
-                setLoading(false)
-                return
-            }
-
-            const data = await res.json()
-            if (data?.access_token) {
-                localStorage.setItem('access_token', data.access_token)
-                router.push('/')
-            } else {
-                setError('Nie otrzymano tokenu z serwera')
-            }
-        } catch (err) {
-            setError('Błąd sieciowy podczas logowania')
-        } finally {
-            setLoading(false)
-        }
-
-    }
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form onSubmit={handleSubmit}>
+      <form>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <a
@@ -85,20 +32,16 @@ export function LoginForm({
             </a>
             <h1 className="text-xl font-bold">Welcome to your own FeedRV.</h1>
             <FieldDescription>
-
-              Don&apos;t have an account? <Link href="/signup" className="underline">Sign up</Link>
+              Already have an account? <Link href="/login" className="underline">Sign in</Link>
             </FieldDescription>
           </div>
-            {error && <p className="text-red-500 text-center text-sm font-medium">{error}</p>}
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
               id="email"
               type="email"
               placeholder="m@example.com"
-              value={username}
               required
-              onChange={e => setUsername(e.target.value)}
             />
           </Field>
             <Field>
@@ -107,13 +50,20 @@ export function LoginForm({
                     id="password"
                     type="password"
                     placeholder="Your password"
-                    value={password}
                     required
-                    onChange={e => setPassword(e.target.value)}
+                />
+            </Field>
+            <Field>
+                <FieldLabel htmlFor="password_repeat">Repeat password</FieldLabel>
+                <Input
+                    id="password_repeat"
+                    type="password"
+                    placeholder="Repeat your password"
+                    required
                 />
             </Field>
           <Field>
-            <Button className={"w-full"} type="submit" disabled={loading}>{loading ? "Logging in..." : "Login"}</Button>
+            <Button className={"w-full"} type="submit">Create Account</Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
           <Field className="grid gap-4 sm:grid-cols-2">

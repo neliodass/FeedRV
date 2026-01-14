@@ -79,6 +79,7 @@ class TagPublic(SQLModel):
 class UserCreate(SQLModel):
     email: str
     password: str
+    password_confirm: str
 
 class UserPublic(SQLModel):
     id: int
