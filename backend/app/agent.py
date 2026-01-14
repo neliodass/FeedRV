@@ -11,6 +11,7 @@ class LinkAnalysis(BaseModel):
     tags: list[str] = Field(..., description="List of 3-5 relevant tags for the link i.e. coding, study, gaming, in lowercase english. Be specific, and tremendous strict, always enter at least 2 tags which will specify if it's research, entertainment, educational,time-waste etc.")
     priority: int = Field(..., ge=1, le=10, description="Priority level from 1 to 10. Prioritize valuable content higher,like some courses or science content,unambitious entertainment lower, spam or clickbait news lowest. Be strict.")
     source_type: str = Field(..., description="Type of source: youtube, article, reddit, rss, other")
+    image_url: str = Field(..., description="URL of the main image or thumbnail associated with the link, if available, otherwise empty string")
 
 
 provider = OpenRouterProvider(

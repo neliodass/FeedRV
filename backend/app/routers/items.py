@@ -18,7 +18,7 @@ async def process_item_in_background(item_id: int, url: str):
     with SQLSession(engine) as session:
         try:
             raw_content = await factory.scrape(url)
-            ai_data, embedding = await process_new_link(url, raw_content[:5000])
+            ai_data, embedding = await process_new_link(url, raw_content.text[:5000],metadata=raw_content.metadata)
 
             item = session.get(Item, item_id)
             item.title = ai_data.title
@@ -29,6 +29,8 @@ async def process_item_in_background(item_id: int, url: str):
             item.embedding = embedding
             item.consumed_at = None
             item.status = 'completed'
+            if ai_data.image_url is not "" and ai_data.image_url is not None:
+                item.image_url = ai_data.image_url
             for tag_name in ai_data.tags:
                 tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
                 if not tag:

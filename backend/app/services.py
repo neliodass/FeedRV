@@ -1,4 +1,6 @@
 import os
+from typing import Dict
+
 import httpx
 
 from app.agent import agent
@@ -28,10 +30,10 @@ async def get_embedding(text: str) -> list[float]:
         embedding = data["embedding"]["values"]
         return embedding
 
-async def process_new_link(url: str, raw_content:str)-> tuple:
-    result = await agent.run(f"Analyze the following link content: {raw_content} \n URL: {url}")
+async def process_new_link(url: str, raw_content:str,metadata:Dict)-> tuple:
+    result = await agent.run(f"Analyze the following link content: {raw_content} \n URL: {url}\n Metadata: {metadata}")
     data = result.output
-    text_to_embed = f"{data.title}\n{data.summary}\n{' '.join(data.tags)}"
+    text_to_embed = f"{data.title}\n{data.creator}\n{data.summary}\n{' '.join(data.tags)}"
     embedding = await get_embedding(text_to_embed)
     return data, embedding
 
