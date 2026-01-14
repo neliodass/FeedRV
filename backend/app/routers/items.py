@@ -6,17 +6,18 @@ from sqlmodel import select, Session as SQLSession
 from app.auth import get_current_active_user
 from app.database import get_session, engine
 from app.models import Item, Tag, ItemPublic, User, ItemUpdate
-from app.scraper import scrape_content
 from app.services import process_new_link, get_embedding
 from datetime import datetime, UTC
+from scraper.scraper_factory import ScraperFactory
 
 router = APIRouter(prefix="/items", tags=["items"])
 
 
 async def process_item_in_background(item_id: int, url: str):
+    factory = ScraperFactory()
     with SQLSession(engine) as session:
         try:
-            raw_content = await scrape_content(url)
+            raw_content = await factory.scrape(url)
             ai_data, embedding = await process_new_link(url, raw_content[:5000])
 
             item = session.get(Item, item_id)
