@@ -27,6 +27,7 @@ async def scrape_content(url:str )-> str:
                 ytt_api = YouTubeTranscriptApi()
                 transcript_list = ytt_api.fetch(video_id=video_id,languages=["en","pl"])
                 transcript = " ".join([entry.text for entry in transcript_list.snippets])
+
                 text_content = await scrape_text(url)
                 if text_content:
                     return text_content+transcript

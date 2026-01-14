@@ -34,7 +34,6 @@ async def register(user_data: UserCreate, session: SQLSession = Depends(get_sess
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
-
     return new_user
 
 

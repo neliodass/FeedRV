@@ -47,6 +47,7 @@ class Item(SQLModel, table=True):
 
     #metadata
     item_metadata: dict = Field(default_factory=dict,sa_column=Column(JSON))
+    image_url: Optional[str] = None
 
     #vector embeddings
     embedding: Optional[list[float]] = Field(default=None,sa_column=Column(Vector(768)))
@@ -63,6 +64,7 @@ class ItemPublic(SQLModel):
     priority: int
     tags: List[Tag]
     item_metadata: dict
+    image_url: Optional[str]
     is_consumed: bool
 class ItemUpdate(SQLModel):
     title: Optional[str] = None
