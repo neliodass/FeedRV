@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {useState} from "react";
+import api from "@/app/lib/api";
 
 export function LoginForm({
   className,
@@ -30,42 +31,25 @@ export function LoginForm({
         setLoading(true)
         setError("")
         try {
-            const body = new URLSearchParams({
-                username,
-                password,
-            }).toString()
+            const params = new URLSearchParams();
+            params.append('username', username);
+            params.append('password', password);
 
-
-            const res = await fetch('http://localhost:8000/auth/login', {
-                method: 'POST',
+            const res = await api.post('/auth/login', {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body,
+                params,
             })
-            if (!res.ok) {
-                let msg = await res.text()
-                try {
-                    const json = JSON.parse(msg)
-                    msg = json.detail ?? json.message ?? JSON.stringify(json)
-                } catch {
-                }
-                setError(`Błąd logowania: ${msg}`)
-                setLoading(false)
-                return
+            if (res.data?.access_token) {
+                localStorage.setItem('token', res.data.access_token);
+                router.push('/dashboard');
             }
-
-            const data = await res.json()
-            if (data?.access_token) {
-                localStorage.setItem('access_token', data.access_token)
-                router.push('/')
-            } else {
-                setError('Nie otrzymano tokenu z serwera')
-            }
-        } catch (err) {
-            setError('Błąd sieciowy podczas logowania')
+        } catch (err: any) {
+            const msg = err.response?.data?.detail || "Błąd sieciowy podczas logowania";
+            setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
 
     }

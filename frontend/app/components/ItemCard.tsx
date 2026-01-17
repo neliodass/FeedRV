@@ -1,6 +1,5 @@
 import { ExternalLink, CheckCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-
 interface Tag {
     name: string;
 }
@@ -25,12 +24,10 @@ const ItemCard = ({ item, onDelete, onToggleConsume }: ItemProps) => {
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all group">
             {item.image_url && (
+                <img src={item.image_url} alt={item.title} className="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                 <div className="relative w-full h-40">
                     <Image src={item.image_url} alt={item.title} fill className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                 </div>
-            )}
-            <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-blue-400">{item.source_type}</span>
                     <div className="flex gap-2">
                         <button onClick={() => onToggleConsume(item.id)} className={item.is_consumed ? 'text-green-500' : 'text-slate-500'}>
