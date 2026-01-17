@@ -32,7 +32,13 @@ const data = {
                     url: "/dashboard",
                 },
                 {
-                    title: "Saved for later",
+                    title: "Save for later",
+                    icon: "plus",
+                    url: "/dashboard/save",
+                    isActive: false
+                },
+                {
+                    title: "Saved",
                     icon: "book-marked",
                     url: "/dashboard/saved",
                     isActive: false
