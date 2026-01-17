@@ -59,8 +59,8 @@ export function FeedItem({
                     )}
                     {tags && (
                         <div className="flex gap-2 mt-2">
-                            {tags.map((tag) => (
-                                <Badge key={tag} variant="secondary" className="text-[9px]">
+                            {tags.map((tag, index) => (
+                                <Badge key={`tag-${index}-${tag}`} variant="secondary" className="text-[9px]">
                                     {tag.toUpperCase()}
                                 </Badge>
                             ))}

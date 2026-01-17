@@ -15,12 +15,14 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {useState} from "react";
 import api from "@/app/lib/api";
+import {useAuth} from "@/app/context/AuthContext";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
     const router = useRouter()
+    const { login } = useAuth()
     const [username, setUsername] = useState<string>("")
     const [password, setPassword] = useState<string>("")
     const [loading, setLoading] = useState<boolean>(false)
@@ -41,7 +43,7 @@ export function LoginForm({
                 },
             })
             if (res.data?.access_token) {
-                localStorage.setItem('token', res.data.access_token);
+                login(res.data.access_token);
                 router.push('/dashboard');
             }
         } catch (err: any) {

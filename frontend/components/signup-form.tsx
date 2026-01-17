@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {useState} from "react";
+import api from "@/app/lib/api";
 
 export function SignupForm({
   className,
@@ -25,6 +26,7 @@ export function SignupForm({
     const [password_repeat, setPasswordRepeat] = useState<string>("")
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<string>("")
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         if(password !== password_repeat) {
@@ -35,37 +37,21 @@ export function SignupForm({
         setLoading(true)
         setError("")
         try {
-            const res = await fetch('http://localhost:8000/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: username,
-                    password: password,
-                    password_confirm: password_repeat,
-                }),
+            const res = await api.post('/auth/register', {
+                email: username,
+                password: password,
+                password_confirm: password_repeat,
             })
-            if (!res.ok) {
-                let msg = await res.text()
-                try {
-                    const json = JSON.parse(msg)
-                    msg = json.detail ?? json.message ?? JSON.stringify(json)
-                } catch {
-                }
-                setError(`Błąd rejestracji: ${msg}`)
-                setLoading(false)
-                return
-            }
-            const data = await res.json()
-            if (data) {
-                router.push('/login')
 
+            if (res.data) {
+                router.push('/login')
             }
-        } catch (error) {
-            setError(`Błąd sieci: ${error}`)
+        } catch (err: any) {
+            const msg = err.response?.data?.detail || err.response?.data?.message || "Błąd rejestracji";
+            setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        } finally {
+            setLoading(false);
         }
-        setLoading(false)
 
 
     }
