@@ -109,7 +109,7 @@ export default function SavePage() {
                             Save for Later
                         </h1>
                         <p className="text-lg text-muted-foreground mt-2">
-                            Add links just for this session
+                            Add links to read, watch, or reference later.
                         </p>
                     </div>
                 </div>

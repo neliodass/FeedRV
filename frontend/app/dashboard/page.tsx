@@ -1,13 +1,10 @@
 "use client";
 
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
-    Search, 
-    Settings, 
-    User, 
-    Coffee, 
+    Coffee,
     Bookmark, 
     Rss, 
     Filter, 
@@ -16,14 +13,84 @@ import {
     Calendar,
     Youtube,
     Terminal,
-    Plus
+    Plus,
+    Loader2
 } from "lucide-react";
 import { QuickPickCard } from "@/app/components/QuickPickCard";
 import { SavedItemCard } from "@/app/components/SavedItemCard";
 import { FeedItem } from "@/app/components/FeedItem";
+import { linksApi, SavedLink } from "@/app/lib/linksApi";
 
 export default function Dashboard() {
-    const currentTime = new Date().toLocaleTimeString('en-US', { 
+    const [savedItems, setSavedItems] = useState<SavedLink[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(1);
+    const observerTarget = useRef<HTMLDivElement>(null);
+
+    const ITEMS_PER_PAGE = 3;
+
+    const loadSavedItems = useCallback(async (pageNum: number) => {
+        try {
+            if (pageNum === 0) {
+                setLoading(true);
+            } else {
+                setLoadingMore(true);
+            }
+
+            const items = await linksApi.getSavedLinks(pageNum, ITEMS_PER_PAGE);
+
+            if (items.length < ITEMS_PER_PAGE) {
+                setHasMore(false);
+            }
+
+            if (pageNum === 0) {
+                setSavedItems(items);
+            } else {
+                setSavedItems(prev => [...prev, ...items]);
+            }
+
+            setPage(pageNum);
+        } catch (error) {
+            console.error("Error loading saved items:", error);
+            setHasMore(false);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadSavedItems(1);
+    }, [loadSavedItems]);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+                    loadSavedItems(page + 1);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, loadingMore, loading, page, loadSavedItems]);
+
+    const displayedItems = savedItems;
+    const hasMoreToShow = hasMore;
+
+    const currentTime = new Date().toLocaleTimeString('en-US', {
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
@@ -56,25 +123,6 @@ export default function Dashboard() {
         }
     ];
 
-    const savedItems = [
-        {
-            id: 1,
-            type: "YouTube",
-            title: "Modern UI Trends: Why Minimalism still wins in 2024",
-            author: "DesignCourse",
-            time: "2d ago",
-            duration: "12:45",
-            hasVideo: true
-        },
-        {
-            id: 2,
-            type: "Substack",
-            title: "The Architecture of Clean Code: Lessons from 10 years in the industry",
-            description: "Software design is not just about writing code that works; it's about writing code that lives and breathes with the team...",
-            readTime: "8 min read",
-            source: "Medium.com"
-        }
-    ];
 
     const feedItems = [
         {
@@ -89,7 +137,7 @@ export default function Dashboard() {
         {
             id: 2,
             source: "The Verge",
-            title: "Apple's rumored folding phone might be closer than we thought",
+            title: "Apple&apos;s rumored folding phone might be closer than we thought",
             description: "New patents suggest a unique hinge design that eliminates the crease entirely...",
             time: "1h ago"
         },
@@ -121,7 +169,7 @@ export default function Dashboard() {
                         {currentTime} <span className="text-primary">•</span> Good Morning
                     </h1>
                     <p className="text-lg text-muted-foreground mt-1">
-                        Here is what's happening today.
+                        Here is what&apos;s happening today.
                     </p>
                 </div>
 
@@ -151,29 +199,46 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-6 h-[600px]">
                         <div className="flex items-center gap-3">
                             <Bookmark className="h-5 w-5 text-primary" />
                             <h3 className="text-lg font-bold">Saved for Later</h3>
-                            <Badge variant="secondary" className="ml-auto">8 items</Badge>
+                            <Badge variant="secondary" className="ml-auto">
+                                {loading ? "..." : `${savedItems.length} items`}
+                            </Badge>
                         </div>
 
-                        <div className="flex flex-col gap-4">
-                            {savedItems.map((item) => (
-                                <SavedItemCard
-                                    key={item.id}
-                                    type={item.type}
-                                    title={item.title}
-                                    author={item.author}
-                                    time={item.time}
-                                    duration={item.duration}
-                                    hasVideo={item.hasVideo}
-                                    description={item.description}
-                                    readTime={item.readTime}
-                                    source={item.source}
-                                />
-                            ))}
-                        </div>
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        ) : savedItems.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                                <Bookmark className="h-12 w-12 mb-4 opacity-50" />
+                                <p className="text-lg font-medium">No saved items yet</p>
+                                <p className="text-sm">Start saving interesting content!</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+                                    {displayedItems.map((item) => (
+                                        <SavedItemCard key={item.id} item={item} />
+                                    ))}
+
+                                    {hasMoreToShow && (
+                                        <div ref={observerTarget} className="py-4 flex justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        </div>
+                                    )}
+
+                                    {!hasMoreToShow && savedItems.length > 0 && (
+                                        <div className="py-4 text-center text-sm text-muted-foreground">
+                                            No more items to load
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-6">

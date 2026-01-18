@@ -9,15 +9,30 @@ export interface Tag {
     name: string;
 }
 
+export interface ItemMetadata {
+    video_id?: string;
+    type?: string;
+    author?: string;
+    title?: string;
+    thumbnail?: string;
+}
+
 export interface SavedLink {
     id: number;
     url: string;
     title: string;
-    description?: string;
-    tags?: Tag[];
-    saved_at?: string;
+    source_type?: string;
     created_at: string;
+    creator?: string;
+    summary?: string;
+    priority?: number;
     status: "pending" | "processing" | "completed";
+    tags?: Tag[];
+    item_metadata?: ItemMetadata;
+    image_url?: string;
+    is_consumed?: boolean;
+    description?: string;
+    saved_at?: string;
     user_id?: number;
 }
 
@@ -29,8 +44,10 @@ export const linksApi = {
         return response.data;
     },
 
-    async getSavedLinks(): Promise<SavedLink[]> {
-        const response = await api.get("/items/");
+    async getSavedLinks(page: number = 0, items_per_batch: number = 10): Promise<SavedLink[]> {
+        const response = await api.get("/items/", {
+            params: { page, items_per_batch }
+        });
         return response.data;
     },
 
