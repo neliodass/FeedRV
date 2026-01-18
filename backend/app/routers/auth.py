@@ -19,13 +19,18 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, session: SQLSession = Depends(get_session)):
+
     existing_user = session.exec(select(User).where(User.email == user_data.email)).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-
+    if user_data.password != user_data.password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match"
+        )
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
