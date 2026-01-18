@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play } from "lucide-react";
 import { SavedLink } from "@/app/lib/linksApi";
+import Link from "next/link";
 
 interface SavedItemCardProps {
     item: SavedLink;
@@ -30,6 +31,7 @@ export function SavedItemCard({ item }: SavedItemCardProps) {
     return (
         <Card className="overflow-hidden cursor-pointer hover:border-primary/50 transition-colors">
             {isYoutube && thumbnail && (
+                <a href={item.url} target={"_blank"} rel={"noopener noreferrer"} >
                 <div className="relative aspect-video bg-slate-200 dark:bg-slate-800">
                     <Image
                         src={thumbnail}
@@ -45,6 +47,7 @@ export function SavedItemCard({ item }: SavedItemCardProps) {
                         </div>
                     </div>
                 </div>
+                </a>
             )}
             <CardContent className="p-4">
                 <p className="text-xs font-semibold text-primary mb-1 uppercase">

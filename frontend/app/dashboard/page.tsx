@@ -33,7 +33,7 @@ export default function Dashboard() {
 
     const loadSavedItems = useCallback(async (pageNum: number) => {
         try {
-            if (pageNum === 0) {
+            if (pageNum === 1) {
                 setLoading(true);
             } else {
                 setLoadingMore(true);
@@ -45,7 +45,7 @@ export default function Dashboard() {
                 setHasMore(false);
             }
 
-            if (pageNum === 0) {
+            if (pageNum === 1) {
                 setSavedItems(items);
             } else {
                 setSavedItems(prev => [...prev, ...items]);
@@ -62,7 +62,7 @@ export default function Dashboard() {
     }, []);
 
     useEffect(() => {
-        loadSavedItems(1);
+        loadSavedItems(page);
     }, [loadSavedItems]);
 
     useEffect(() => {
