@@ -1,12 +1,13 @@
 from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from openai import max_retries
-from sqlmodel import select, Session as SQLSession
+from sortedcontainers import SortedSet
+from sqlmodel import select, Session as SQLSession, desc, asc
 
 from app.auth import get_current_active_user
 from app.database import get_session, engine
-from app.models import Item, Tag, ItemPublic, User, ItemUpdate
+from app.models import Item, Tag, ItemPublic, User, ItemUpdate, SortOrder
 from app.services import process_new_link, get_embedding
 from datetime import datetime, UTC
 
@@ -49,6 +50,11 @@ async def read_items(
     items_per_batch: int = 10,
     page: int = 1,
     include_consumed: bool = False,
+    sort_order:str | None = Query(
+        default="created_at:desc",
+        alias="sort",
+        description="Format: field_name:direction (e.g., created_at:asc or created_at:desc)\n Allowed: created_at, priority, title"
+    ),
     session: SQLSession = Depends(get_session),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -57,6 +63,27 @@ async def read_items(
 
     if not include_consumed:
         statement = statement.where(Item.is_consumed == False)
+    if sort_order:
+        try:
+            field_name, direction = sort_order.split(":")
+        except ValueError:
+            raise HTTPException(400, "Invalid sort format. Use 'field:direction'")
+
+        allowed_sort_fields = {
+            "created_at": Item.created_at,
+            "priority": Item.priority,
+            "title": Item.title,
+        }
+
+        if field_name not in allowed_sort_fields:
+            raise HTTPException(400, f"Sorting by '{field_name}' is not allowed")
+
+        column = allowed_sort_fields[field_name]
+
+        if direction.lower() == "desc":
+            statement = statement.order_by(desc(column))
+        else:
+            statement = statement.order_by(asc(column))
 
     statement = statement.offset(offset).limit(items_per_batch)
     items = session.exec(statement).all()

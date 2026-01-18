@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Optional,List
 from pgvector.sqlalchemy import Vector
 from sqlmodel import SQLModel, Field,Column,JSON,Relationship
-
+class SortOrder(str, Enum):
+    newest = "newest"
+    oldest = "oldest"
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
