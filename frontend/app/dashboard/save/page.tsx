@@ -1,68 +1,63 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-    Bookmark,
-    Link as LinkIcon,
-    Trash2,
-    ExternalLink,
-    Plus,
-    Loader2,
-    CheckCircle2
-} from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { linksApi, SavedLink } from "@/app/lib/linksApi";
+import {useEffect, useState} from "react";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import {Badge} from "@/components/ui/badge";
+import {Bookmark, CheckCircle2, ExternalLink, Link as LinkIcon, Loader2, Plus, Trash2} from "lucide-react";
+import {Label} from "@/components/ui/label";
+import {linksApi, SavedLink} from "@/app/lib/linksApi";
 
 export default function SavePage() {
     const [url, setUrl] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [savedLinks, setSavedLinks] = useState<SavedLink[]>([]);
-    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [sessionLinks, setSessionLinks] = useState<SavedLink[]>([]);
 
-    const loadSavedLinks = useCallback(async () => {
-        try {
-            const links = await linksApi.getSavedLinks();
-            setSavedLinks(links);
-
-            const hasPendingLinks = links.some(link => link.status === "pending");
-
-            if (hasPendingLinks && !pollingIntervalRef.current) {
-                pollingIntervalRef.current = setInterval(async () => {
-                    const updatedLinks = await linksApi.getSavedLinks();
-                    setSavedLinks(updatedLinks);
-
-                    const stillPending = updatedLinks.some(link => link.status === "pending");
-                    if (!stillPending && pollingIntervalRef.current) {
-                        clearInterval(pollingIntervalRef.current);
-                        pollingIntervalRef.current = null;
-                    }
-                }, 5000);
-            } else if (!hasPendingLinks && pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-            }
-        } catch (err) {
-            console.error("Failed to load saved links:", err);
-        }
-    }, []);
 
     useEffect(() => {
-        loadSavedLinks();
+        const pendingLinks = sessionLinks.filter(link => link.status === "pending" || link.status === "processing");
+        if (pendingLinks.length === 0) return;
+        const intervalId = setInterval(async () => {
+            try {
+                const updates = await Promise.all(
+                    pendingLinks.map(async (link) => {
+                        try {
+                            return await linksApi.getSavedLink(link.id);
+                        } catch (e) {
+                            console.error("Error fetching link status:", e);
+                            return null;
+                        }
+                    })
+                );
+                setSessionLinks(currentSessionLinks => {
+                    return currentSessionLinks.map(link => {
+                        const update = updates.find(u => u && u.id === link.id);
+                        if (update) {
+                            const hasChanged =
+                                update.status !== link.status ||
+                                update.title !== link.title;
 
-        return () => {
-            if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
+                            if (hasChanged) {
+                                console.log('Link updated:', { id: link.id, old: link, new: update });
+                                return update;
+                            }
+                        }
+                        return link;
+                    });
+                });
+            } catch (e) {
+                console.error(e);
             }
-        };
-    }, [loadSavedLinks]);
+        }, 2000);
 
-    const formatDate = (dateString: string): string => {
+        return () => clearInterval(intervalId);
+    }, [sessionLinks]);
+
+
+    const formatDate = (dateString?: string): string => {
+        if (!dateString) return "Just now";
         const date = new Date(dateString);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
@@ -83,25 +78,26 @@ export default function SavePage() {
         setError("");
 
         try {
-            const newLink = await linksApi.saveLink({ url });
-            setSavedLinks([newLink, ...savedLinks]);
+            const newLink = await linksApi.saveLink({url});
+            setSessionLinks(prev => [newLink, ...prev]);
             setUrl("");
-        } catch (err: any) {
-            setError(err.response?.data?.detail || "Failed to save link");
-            console.error("Save error:", err);
+        } catch (err: unknown) {
+            const maybeErr = err as { response?: { data?: { detail?: string } } };
+            setError(maybeErr.response?.data?.detail || "Failed to save link");
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
-
     const handleDelete = async (id: number) => {
         try {
             await linksApi.deleteLink(id);
-            setSavedLinks(savedLinks.filter(link => link.id !== id));
+            setSessionLinks(prev => prev.filter(link => link.id !== id));
         } catch (err) {
-            console.error("Delete error:", err);
+            console.error(err);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-background p-6">
@@ -109,23 +105,22 @@ export default function SavePage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
-                            <Bookmark className="h-10 w-10 text-primary" />
+                            <Bookmark className="h-10 w-10 text-primary"/>
                             Save for Later
                         </h1>
                         <p className="text-lg text-muted-foreground mt-2">
-                            Save links to read, watch, or review later
+                            Add links just for this session
                         </p>
                     </div>
                 </div>
-
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Plus className="h-5 w-5" />
+                            <Plus className="h-5 w-5"/>
                             Add New Link
                         </CardTitle>
                         <CardDescription>
-                            Paste a URL and we&apos;ll automatically extract the content
+                            Paste a URL to process it immediately.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -135,26 +130,26 @@ export default function SavePage() {
                                     {error}
                                 </div>
                             )}
-
                             <div className="space-y-2">
                                 <Label htmlFor="url">URL</Label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
-                                        <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                        <LinkIcon
+                                            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                                         <Input
                                             id="url"
                                             type="url"
                                             placeholder="https://example.com/article"
                                             value={url}
                                             onChange={(e) => setUrl(e.target.value)}
-                                            className="pl-10"
+                                            className={"pl-10"}
                                             required
                                         />
                                     </div>
                                     <Button type="submit" disabled={loading}>
                                         {loading ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin"/>
                                                 Saving...
                                             </>
                                         ) : (
@@ -166,90 +161,85 @@ export default function SavePage() {
                         </form>
                     </CardContent>
                 </Card>
-
+                {}
                 <div className="space-y-4">
-                    {savedLinks.map((link) => (
-                        <Card key={link.id} className="hover:border-primary/50 transition-colors">
-                            <CardContent className="p-6">
+                    {sessionLinks.length > 0 && (
+                        <h2 className="text-xl font-semibold px-1">Recently Added ({sessionLinks.length})</h2>
+                    )}
+                    {sessionLinks.map((link) => (
+                        <Card key={link.id}
+                              className="hover:border-primary/50 transition-colors animate-in fade-in slide-in-from-top-4 duration-300">
+                            <CardContent className="p-4">
                                 <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1 space-y-3">
-                                        <div className="flex items-start justify-between">
-                                            <div className="space-y-1 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-lg font-bold leading-tight">
-                                                        {link.title || link.url}
-                                                    </h3>
-                                                    {link.status === "pending" ? (
-                                                        <Badge variant="outline" className="gap-1">
-                                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                                            Processing
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary" className="gap-1">
-                                                            <CheckCircle2 className="h-3 w-3" />
-                                                            Ready
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <a
-                                                    href={link.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-primary hover:underline flex items-center gap-1 break-all"
-                                                >
-                                                    {link.url}
-                                                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                                </a>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(link.id)}
-                                                className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-lg font-bold leading-tight">
+                                                {link.title || link.url}
+                                            </h3>
+                                            {link.status === "pending" ? (
+                                                <Badge variant="outline"
+                                                       className="gap-1 bg-yellow-50  text-yellow-700 border-yellow-200">
+                                                    <Loader2 className="h-3 w-3 animate-spin"/>
+                                                    Pending...
+                                                </Badge>
+                                            ) : link.status === "processing" ? (
+                                                <Badge variant="outline"
+                                                       className="gap-1 bg-blue-50 text-blue-700 border-blue-200">
+                                                    <Loader2 className="h-3 w-3 animate-spin"/>
+                                                    Processing...
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary"
+                                                       className="gap-1 bg-green-50 text-green-700 border-green-200">
+                                                    <CheckCircle2 className="h-3 w-3"/>
+                                                    Ready
+                                                </Badge>
+                                            )}
                                         </div>
-
+                                        <a
+                                            href={link.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-primary hover:underline flex items-center gap-1 break-all"
+                                        >
+                                            {link.url}
+                                            <ExternalLink className="h-3 w-3 flex-shrink-0"/>
+                                        </a>
                                         {link.description && (
-                                            <p className="text-sm text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground line-clamp-2">
                                                 {link.description}
                                             </p>
                                         )}
-
-                                        <div className="flex items-center gap-3 flex-wrap">
+                                        <div className="flex items-center gap-3 flex-wrap pt-1">
                                             {link.tags && link.tags.length > 0 && (
                                                 <div className="flex flex-wrap gap-2">
                                                     {link.tags.map((tag, index) => (
-                                                        <Badge key={`${link.id}-tag-${index}`} variant="secondary" className="text-xs">
+                                                        <Badge key={tag.id ?? `${link.id}-tag-${index}`}
+                                                               variant="secondary" className="text-xs">
                                                             {tag.name}
                                                         </Badge>
                                                     ))}
                                                 </div>
                                             )}
                                             <span className="text-xs text-muted-foreground ml-auto">
-                                                {formatDate(link.saved_at)}
+                                                Added: {formatDate(link.created_at)}
                                             </span>
                                         </div>
                                     </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDelete(link.id)}
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                                    >
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
-
-                    {savedLinks.length === 0 && (
-                        <Card>
-                            <CardContent className="py-12 text-center">
-                                <Bookmark className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                <p className="text-lg text-muted-foreground">
-                                    No saved links yet. Add your first link above!
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             </div>
         </div>
     );
 }
-

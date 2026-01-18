@@ -12,11 +12,12 @@ export interface Tag {
 export interface SavedLink {
     id: number;
     url: string;
-    title?: string;
+    title: string;
     description?: string;
     tags?: Tag[];
-    saved_at: string;
-    status: "pending" | "processed";
+    saved_at?: string;
+    created_at: string;
+    status: "pending" | "processing" | "completed";
     user_id?: number;
 }
 
@@ -30,6 +31,11 @@ export const linksApi = {
 
     async getSavedLinks(): Promise<SavedLink[]> {
         const response = await api.get("/items/");
+        return response.data;
+    },
+
+    async getSavedLink(id: number): Promise<SavedLink> {
+        const response = await api.get(`/items/${id}`);
         return response.data;
     },
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional,List
 from pgvector.sqlalchemy import Vector
 from sqlmodel import SQLModel, Field,Column,JSON,Relationship
@@ -62,6 +62,7 @@ class ItemPublic(SQLModel):
     creator: str
     summary: Optional[str]
     priority: int
+    status: str
     tags: List[Tag]
     item_metadata: dict
     image_url: Optional[str]

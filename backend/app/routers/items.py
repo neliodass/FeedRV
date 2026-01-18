@@ -61,6 +61,19 @@ async def read_items(
     statement = statement.offset(offset).limit(items_per_batch)
     items = session.exec(statement).all()
     return items
+@router.get("/{item_id}", response_model=ItemPublic)
+async def read_item(
+    item_id: int,
+    session: SQLSession = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
+
+    statement = select(Item).where(Item.id == item_id, Item.user_id == current_user.id)
+    item = session.exec(statement).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found.")
+    return item
+
 
 
 @router.get("/search/", response_model=List[Tuple[ItemPublic, float]])
