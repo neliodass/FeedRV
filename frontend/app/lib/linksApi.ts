@@ -44,10 +44,18 @@ export const linksApi = {
         return response.data;
     },
 
-    async getSavedLinks(page: number = 0, items_per_batch: number = 10): Promise<SavedLink[]> {
-        const response = await api.get("/items/", {
-            params: { page, items_per_batch }
-        });
+    async getSavedLinks(
+        page: number = 0,
+        items_per_batch: number = 10,
+        sort_by: 'created_at' | 'title' | 'priority' = 'created_at',
+        sort_order: 'asc' | 'desc' = 'desc',
+    ): Promise<SavedLink[]> {
+        const params: any = { page, items_per_batch };
+        if(sort_by && sort_order) {
+            params.sort = `${sort_by}:${sort_order}`;
+        }
+
+        const response = await api.get("/items/", { params });
         return response.data;
     },
 

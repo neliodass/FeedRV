@@ -2,8 +2,18 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
     Coffee,
     Bookmark, 
     Rss, 
@@ -14,7 +24,10 @@ import {
     Youtube,
     Terminal,
     Plus,
-    Loader2
+    Loader2,
+    ArrowUp,
+    ArrowDown,
+    ChevronDown
 } from "lucide-react";
 import { QuickPickCard } from "@/app/components/QuickPickCard";
 import { SavedItemCard } from "@/app/components/SavedItemCard";
@@ -27,11 +40,13 @@ export default function Dashboard() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(1);
+    const [sortField, setSortField] = useState<'date' | 'title' | 'priority'>('date');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const observerTarget = useRef<HTMLDivElement>(null);
 
     const ITEMS_PER_PAGE = 3;
 
-    const loadSavedItems = useCallback(async (pageNum: number) => {
+    const loadSavedItems = useCallback(async (pageNum: number, sortBy?: 'created_at' | 'title' | 'priority', sortOrder?: 'asc' | 'desc') => {
         try {
             if (pageNum === 1) {
                 setLoading(true);
@@ -39,7 +54,7 @@ export default function Dashboard() {
                 setLoadingMore(true);
             }
 
-            const items = await linksApi.getSavedLinks(pageNum, ITEMS_PER_PAGE);
+            const items = await linksApi.getSavedLinks(pageNum, ITEMS_PER_PAGE, sortBy, sortOrder);
 
             if (items.length < ITEMS_PER_PAGE) {
                 setHasMore(false);
@@ -61,15 +76,27 @@ export default function Dashboard() {
         }
     }, []);
 
+    // Map frontend sort field to API field names
+    const getApiSortField = (field: 'date' | 'title' | 'priority'): 'created_at' | 'title' | 'priority' => {
+        if (field === 'date') return 'created_at';
+        return field;
+    };
+
+    // Reset and reload when sort changes
     useEffect(() => {
-        loadSavedItems(1);
-    }, [loadSavedItems]);
+        setHasMore(true);
+        setPage(1);
+        setSavedItems([]);
+        const apiSortField = getApiSortField(sortField);
+        loadSavedItems(1, apiSortField, sortDirection);
+    }, [sortField, sortDirection, loadSavedItems]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
             entries => {
                 if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-                    loadSavedItems(page + 1);
+                    const apiSortField = getApiSortField(sortField);
+                    loadSavedItems(page + 1, apiSortField, sortDirection);
                 }
             },
             { threshold: 0.1 }
@@ -85,7 +112,7 @@ export default function Dashboard() {
                 observer.unobserve(currentTarget);
             }
         };
-    }, [hasMore, loadingMore, loading, page, loadSavedItems]);
+    }, [hasMore, loadingMore, loading, page, loadSavedItems, sortField, sortDirection]);
 
     const handleItemUpdate = useCallback((updatedItem: SavedLink) => {
         console.log('Updating item in dashboard:', updatedItem.id, 'is_consumed:', updatedItem.is_consumed);
@@ -93,6 +120,15 @@ export default function Dashboard() {
             prev.map(item => item.id === updatedItem.id ? { ...updatedItem } : item)
         );
     }, []);
+
+    const handleItemDelete = useCallback((itemId: number) => {
+        console.log('Deleting item from dashboard:', itemId);
+        setSavedItems(prev => prev.filter(item => item.id !== itemId));
+    }, []);
+
+    const toggleSortDirection = () => {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    };
 
     const currentTime = new Date().toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -207,9 +243,46 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3">
                             <Bookmark className="h-5 w-5 text-primary" />
                             <h3 className="text-lg font-bold">Saved for Later</h3>
-                            <Badge variant="secondary" className="ml-auto">
-                                {loading ? "..." : `${savedItems.length} items`}
-                            </Badge>
+                            <div className="ml-auto flex items-center gap-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
+                                            {sortField === 'date' ? 'Date' : sortField === 'title' ? 'Title' : 'Priority'}
+                                            <ChevronDown className="h-3 w-3" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => setSortField('date')}>
+                                            Date Added
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSortField('title')}>
+                                            Title
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSortField('priority')}>
+                                            Priority
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 w-7 p-0"
+                                            onClick={toggleSortDirection}
+                                        >
+                                            {sortDirection === 'asc' ? (
+                                                <ArrowUp className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <ArrowDown className="h-3.5 w-3.5" />
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                         </div>
 
                         {loading ? (
@@ -230,6 +303,7 @@ export default function Dashboard() {
                                             key={item.id}
                                             item={item}
                                             onUpdate={handleItemUpdate}
+                                            onDelete={handleItemDelete}
                                         />
                                     ))}
 
