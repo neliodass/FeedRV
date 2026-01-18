@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional,List
 from pgvector.sqlalchemy import Vector
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field,Column,JSON,Relationship
 class SortOrder(str, Enum):
     newest = "newest"
@@ -91,10 +92,12 @@ class UserPublic(SQLModel):
     is_active: bool
     created_at: datetime
 
-class Token(SQLModel):
+class TokenPair(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
-
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 class TokenData(SQLModel):
     email: Optional[str] = None
 
