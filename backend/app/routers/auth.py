@@ -1,9 +1,8 @@
 from datetime import timedelta
 
-import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError
+from jose import JWTError,jwt
 from sqlmodel import Session as SQLSession, select
 
 from app.auth import (
@@ -11,10 +10,14 @@ from app.auth import (
     create_access_token,
     get_password_hash,
     get_current_active_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES, create_refresh_token, REFRESH_SECRET_KEY, ALGORITHM
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_refresh_token,
+    REFRESH_SECRET_KEY,
+    ALGORITHM,
+    REFRESH_TOKEN_EXPIRE_DAYS
 )
 from app.database import get_session
-from app.models import User, UserCreate, UserPublic, TokenPair, RefreshTokenRequest
+from app.models import User, UserCreate, UserPublic
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -43,8 +46,9 @@ async def register(user_data: UserCreate, session: SQLSession = Depends(get_sess
     return new_user
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login")
 async def login(
+        response: Response,
         form_data: OAuth2PasswordRequestForm = Depends(),
         session: SQLSession = Depends(get_session)
 ):
@@ -56,22 +60,46 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}
+        data={"sub": user.email}, expires_delta=access_token_expires
     )
     refresh_token = create_refresh_token(
         data={"sub": user.email}
     )
 
-    return {"access_token": access_token,"refresh_token":refresh_token, "token_type": "bearer"}
-@router.post("/refresh", response_model=TokenPair)
-def refresh_token(request: RefreshTokenRequest,session:SQLSession = Depends(get_session)):
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+
+    return {"message": "Login successful"}
+
+
+@router.post("/refresh")
+def refresh_token(response: Response, request: Request, session: SQLSession = Depends(get_session)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    token = request.refresh_token
+
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise credentials_exception
 
     try:
         payload = jwt.decode(token, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
@@ -81,12 +109,41 @@ def refresh_token(request: RefreshTokenRequest,session:SQLSession = Depends(get_
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+
     user = session.exec(select(User).where(User.email == email)).first()
     if user is None:
         raise credentials_exception
+
     new_access_token = create_access_token(data={"sub": user.email})
     new_refresh_token = create_refresh_token(data={"sub": user.email})
-    return {"access_token": new_access_token,"refresh_token": new_refresh_token, "token_type": "bearer"}
+
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {new_access_token}",
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+
+    return {"message": "Token refreshed"}
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out"}
+
 
 @router.get("/me", response_model=UserPublic)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
