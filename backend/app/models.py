@@ -2,8 +2,12 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional,List
 from pgvector.sqlalchemy import Vector
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from sqlmodel import SQLModel, Field,Column,JSON,Relationship
+
+def format_datetime(dt: datetime) -> str:
+    print(dt)
+    return dt.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 class SortOrder(str, Enum):
     newest = "newest"
     oldest = "oldest"
@@ -33,7 +37,7 @@ class Item(SQLModel, table=True):
     url: str = Field(unique=True,index=True)
     title: str
     source_type: str # youtube, article, reddit,rss, other
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: format_datetime(datetime.now(timezone.utc)))
     creator: str
     status:str =  Field(default='pending')
 
@@ -71,6 +75,15 @@ class ItemPublic(SQLModel):
     item_metadata: dict
     image_url: Optional[str]
     is_consumed: bool
+
+    @field_serializer('created_at')
+    def serialize_dt(self, dt: datetime, _info):
+
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 class ItemUpdate(SQLModel):
     title: Optional[str] = None
     priority: Optional[int] = None

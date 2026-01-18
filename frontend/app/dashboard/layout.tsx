@@ -5,14 +5,12 @@ import {AppSidebar} from "@/components/app-sidebar";
 import {Coffee, Search, Settings, User} from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
-import {ProtectedRoute} from "@/app/components/ProtectedRoute";
 import {useAuth} from "@/app/context/AuthContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { logout } = useAuth();
 
     return (
-        <ProtectedRoute>
             <SidebarProvider>
                 <AppSidebar />
                 <SidebarInset>
@@ -48,6 +46,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {children}
                 </SidebarInset>
             </SidebarProvider>
-        </ProtectedRoute>
     );
 }

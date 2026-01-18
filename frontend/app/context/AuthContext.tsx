@@ -1,58 +1,59 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import api from "@/app/lib/api";
+
+interface User {
+    email: string;
+    id?: number;
+    is_active?: boolean;
+}
 
 interface AuthContextType {
+    user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (token: string) => void;
     logout: () => void;
+    checkUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
-    const pathname = usePathname();
-
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !!localStorage.getItem('token');
-        }
-        return false;
-    });
+    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
+    const checkUser = async () => {
+        try {
+            const { data } = await api.get('/auth/me');
+            setUser(data);
+        } catch (error) {
+            setUser(null);
+        } finally {
             setIsLoading(false);
-        }, 0);
-
-        const token = localStorage.getItem('token');
-        const publicPaths = ['/login', '/signup', '/'];
-        const isPublicPath = publicPaths.includes(pathname);
-
-        if (!token && !isPublicPath && pathname.startsWith('/dashboard')) {
-            router.push('/login');
         }
-
-        return () => clearTimeout(timer);
-    }, [pathname, router]);
-
-    const login = (token: string) => {
-        localStorage.setItem('token', token);
-        setIsAuthenticated(true);
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setIsAuthenticated(false);
-        router.push('/login');
+    useEffect(() => {
+        checkUser();
+    }, []);
+
+    const logout = async () => {
+        try {
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error("Logout error", error);
+        } finally {
+            setUser(null);
+            router.push('/login');
+            router.refresh();
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, logout, checkUser }}>
             {children}
         </AuthContext.Provider>
     );
@@ -65,4 +66,3 @@ export function useAuth() {
     }
     return context;
 }
-
