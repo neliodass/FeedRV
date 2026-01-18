@@ -70,7 +70,7 @@ async def get_token_from_request(request: Request):
     return None
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: str = Depends(get_token_from_request),
     session: SQLSession = Depends(get_session)
 ) -> User:
     credentials_exception = HTTPException(
@@ -78,7 +78,8 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
+    if token is None:
+        raise credentials_exception
     try:
         payload = jwt.decode(token, ACCESS_SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
