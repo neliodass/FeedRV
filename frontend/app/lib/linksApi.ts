@@ -63,6 +63,16 @@ export const linksApi = {
     async updateLink(linkId: number, data: Partial<SaveLinkRequest>): Promise<SavedLink> {
         const response = await api.patch(`/items/${linkId}`, data);
         return response.data;
+    },
+
+    async markAsConsumed(linkId: number): Promise<SavedLink> {
+        const response = await api.patch(`/items/${linkId}/consume?is_consumed=true`);
+        return response.data;
+    },
+
+    async markAsUnconsumed(linkId: number): Promise<SavedLink> {
+        const response = await api.patch(`/items/${linkId}/consume?is_consumed=false`);
+        return response.data;
     }
 };
 

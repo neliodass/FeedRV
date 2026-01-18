@@ -62,7 +62,7 @@ export default function Dashboard() {
     }, []);
 
     useEffect(() => {
-        loadSavedItems(page);
+        loadSavedItems(1);
     }, [loadSavedItems]);
 
     useEffect(() => {
@@ -87,13 +87,17 @@ export default function Dashboard() {
         };
     }, [hasMore, loadingMore, loading, page, loadSavedItems]);
 
-    const displayedItems = savedItems;
-    const hasMoreToShow = hasMore;
+    const handleItemUpdate = useCallback((updatedItem: SavedLink) => {
+        console.log('Updating item in dashboard:', updatedItem.id, 'is_consumed:', updatedItem.is_consumed);
+        setSavedItems(prev =>
+            prev.map(item => item.id === updatedItem.id ? { ...updatedItem } : item)
+        );
+    }, []);
 
     const currentTime = new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit', 
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
     });
 
     const quickPicks = [
@@ -221,17 +225,21 @@ export default function Dashboard() {
                         ) : (
                             <>
                                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-                                    {displayedItems.map((item) => (
-                                        <SavedItemCard key={item.id} item={item} />
+                                    {savedItems.map((item) => (
+                                        <SavedItemCard
+                                            key={item.id}
+                                            item={item}
+                                            onUpdate={handleItemUpdate}
+                                        />
                                     ))}
 
-                                    {hasMoreToShow && (
+                                    {hasMore && (
                                         <div ref={observerTarget} className="py-4 flex justify-center">
-                                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                            {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
                                         </div>
                                     )}
 
-                                    {!hasMoreToShow && savedItems.length > 0 && (
+                                    {!hasMore && savedItems.length > 0 && (
                                         <div className="py-4 text-center text-sm text-muted-foreground">
                                             No more items to load
                                         </div>

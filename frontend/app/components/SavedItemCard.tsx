@@ -1,18 +1,42 @@
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play } from "lucide-react";
-import { SavedLink } from "@/app/lib/linksApi";
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Play, CheckCircle2, Circle } from "lucide-react";
+import { SavedLink, linksApi } from "@/app/lib/linksApi";
+import { useState } from "react";
 
 interface SavedItemCardProps {
     item: SavedLink;
+    onUpdate?: (updatedItem: SavedLink) => void;
 }
 
-export function SavedItemCard({ item }: SavedItemCardProps) {
+export function SavedItemCard({ item, onUpdate }: SavedItemCardProps) {
+    const [isUpdating, setIsUpdating] = useState(false);
+
     const isYoutube = item.source_type === "youtube";
     const thumbnail = item.image_url || item.item_metadata?.thumbnail;
     const creator = item.creator || item.item_metadata?.author;
+
+    const handleToggleConsumed = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setIsUpdating(true);
+        try {
+            const updatedItem = item.is_consumed
+                ? await linksApi.markAsUnconsumed(item.id)
+                : await linksApi.markAsConsumed(item.id);
+
+            if (onUpdate) {
+                onUpdate(updatedItem);
+            }
+        } catch (error) {
+            console.error("Error toggling consumed status:", error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     const formatDate = (dateString: string): string => {
         const date = new Date(dateString);
@@ -77,10 +101,32 @@ export function SavedItemCard({ item }: SavedItemCardProps) {
                     </div>
                 )}
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {creator && <span>{creator}</span>}
-                    {creator && <span>•</span>}
-                    <span>{formatDate(item.created_at)}</span>
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {creator && <span>{creator}</span>}
+                        {creator && <span>•</span>}
+                        <span>{formatDate(item.created_at)}</span>
+                    </div>
+
+                    <Button
+                        variant={item.is_consumed ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 gap-1.5"
+                        onClick={handleToggleConsumed}
+                        disabled={isUpdating}
+                    >
+                        {item.is_consumed ? (
+                            <>
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <span className="text-xs">Consumed</span>
+                            </>
+                        ) : (
+                            <>
+                                <Circle className="h-3.5 w-3.5" />
+                                <span className="text-xs">Mark Read</span>
+                            </>
+                        )}
+                    </Button>
                 </div>
             </CardContent>
         </Card>
