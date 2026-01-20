@@ -25,12 +25,15 @@ async def process_item_with_retry(
                         session.add(item)
                         session.commit()
 
+                print(f"[{item_id}] Starting scrape for URL: {url}")
                 scraped_content = await factory.scrape(url)
+                print(f"[{item_id}] Scrape complete, processing with AI...")
                 ai_data, embedding = await process_new_link(
                     url,
                     scraped_content.text[:5000],
                     scraped_content
                 )
+                print(f"[{item_id}] AI processing complete, updating database...")
 
                 item = session.get(Item, item_id)
                 if not item:
@@ -64,8 +67,10 @@ async def process_item_with_retry(
                 return
 
             except Exception as e:
+                import traceback
                 error_msg = f"Error processing item {item_id} (attempt {attempt + 1}/{max_retries}): {str(e)}"
                 print(error_msg)
+                print(traceback.format_exc())
                 if attempt == max_retries - 1:
                     try:
                         item = session.get(Item, item_id)

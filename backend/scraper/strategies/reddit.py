@@ -21,7 +21,11 @@ class RedditScraper(ContentScraper):
         return "reddit.com" in url or "redd.it" in url
 
     async def scrape(self, url: str) -> ScrapedContent:
-        json_data = await self.json_fetcher.fetch(url)
+        try:
+            json_data = await self.json_fetcher.fetch(url)
+        except Exception as e:
+            print(f"Reddit JSON fetch failed: {str(e)}, falling back to generic scraper")
+            raise ValueError(f"Reddit scraper failed: {str(e)}")
 
         text = self.content_extractor.extract(json_data)
         metadata = self.metadata_extractor.extract(json_data)

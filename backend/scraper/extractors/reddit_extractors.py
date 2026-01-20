@@ -1,22 +1,57 @@
-from typing import Optional
+from typing import Optional, List, Any
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 import httpx
 
 
 class RedditJsonFetcher:
-    async def fetch(self, url: str) -> dict:
-        json_url = url.rstrip('/') + '.json'
+    async def fetch(self, url: str) -> List[Any]:
+        parsed = urlparse(url)
+
+        path = parsed.path.rstrip('/')
+        if not path.endswith('.json'):
+            path += '.json'
+
+        query_params = parse_qs(parsed.query) if parsed.query else {}
+        query_params['raw_json'] = ['1']
+        query_string = urlencode(query_params, doseq=True)
+
+        json_url = urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            path,
+            parsed.params,
+            query_string,
+            parsed.fragment
+        ))
+
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
+
+        print(f"Fetching Reddit JSON from: {json_url}")
 
         async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client:
             response = await client.get(json_url, headers=headers)
             response.raise_for_status()
-            return response.json()
+
+            content_type = response.headers.get('content-type', '')
+            if 'application/json' not in content_type:
+                print(f"Reddit returned non-JSON content: {content_type}")
+                print(f"First 500 chars: {response.text[:500]}")
+                raise ValueError(f"Reddit did not return JSON. Content-Type: {content_type}")
+
+            try:
+                return response.json()
+            except Exception as e:
+                print(f"Failed to parse Reddit JSON response")
+                print(f"URL: {json_url}")
+                print(f"Status: {response.status_code}")
+                print(f"Content preview: {response.text[:500]}")
+                raise
 
 
 class RedditContentExtractor:
-    def extract(self, json_data: list) -> str:
+    def extract(self, json_data: List[Any]) -> str:
         post_data = json_data[0]['data']['children'][0]['data']
         content_parts = []
 
@@ -45,7 +80,7 @@ class RedditContentExtractor:
 
 
 class RedditMetadataExtractor:
-    def extract(self, json_data: list) -> dict:
+    def extract(self, json_data: List[Any]) -> dict:
         post_data = json_data[0]['data']['children'][0]['data']
 
         return {
@@ -61,7 +96,7 @@ class RedditMetadataExtractor:
 
     def _get_thumbnail(self, post_data: dict) -> Optional[str]:
         thumbnail = post_data.get('thumbnail')
-        if thumbnail and thumbnail not in ['self', 'default', 'nsfw', 'spoiler', '']:
+        if thumbnail:
             return thumbnail
 
         preview = post_data.get('preview', {})

@@ -74,16 +74,17 @@ class WebsiteMetadataExtractor:
     def _extract_thumbnail(self, soup: BeautifulSoup, base_url: str) -> Optional[str]:
         from urllib.parse import urljoin
 
-        meta_tags = [
-            {"property": "og:image"},
-            {"name": "twitter:image"},
-            {"property": "twitter:image:src"}
-        ]
+        og_image = soup.find("meta", property="og:image")
+        if og_image and og_image.get("content"):
+            return og_image["content"]
 
-        for tag_attr in meta_tags:
-            meta = soup.find("meta", **tag_attr)
-            if meta and meta.get("content"):
-                return meta["content"]
+        twitter_image = soup.find("meta", attrs={"name": "twitter:image"})
+        if twitter_image and twitter_image.get("content"):
+            return twitter_image["content"]
+
+        twitter_image_src = soup.find("meta", property="twitter:image:src")
+        if twitter_image_src and twitter_image_src.get("content"):
+            return twitter_image_src["content"]
 
         for img in soup.find_all('img'):
             src = img.get('src')
