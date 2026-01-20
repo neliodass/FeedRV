@@ -1,28 +1,24 @@
 from typing import List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
-from openai import max_retries
-from sortedcontainers import SortedSet
+
 from sqlmodel import select, Session as SQLSession, desc, asc
 
 from app.auth import get_current_active_user
 from app.database import get_session, engine
-from app.models import Item, Tag, ItemPublic, User, ItemUpdate, SortOrder
-from app.services import process_new_link, get_embedding
-from datetime import datetime, UTC
-
+from app.models import Item, Tag, ItemPublic, User, ItemUpdate, SourceType
+from app.services import  get_embedding
+from datetime import datetime
 from app.tasks.background_tasks import process_item_with_retry
-from scraper.scraper_factory import ScraperFactory
-
 router = APIRouter(prefix="/items", tags=["items"])
 
 
 @router.post("/", response_model=ItemPublic)
 async def create_item(
-    url: str,
-    background_tasks: BackgroundTasks,
-    session: SQLSession = Depends(get_session),
-    current_user: User = Depends(get_current_active_user)
+        url: str,
+        background_tasks: BackgroundTasks,
+        session: SQLSession = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
 ):
     existing_item = session.exec(select(Item).where(Item.url == url)).first()
     if existing_item:
@@ -41,22 +37,22 @@ async def create_item(
     session.commit()
     session.refresh(new_item)
 
-    background_tasks.add_task(process_item_with_retry, new_item.id, url,max_retries=3,initial_delay=2.0)
+    background_tasks.add_task(process_item_with_retry, new_item.id, url, max_retries=3, initial_delay=2.0)
     return new_item
 
 
 @router.get("/", response_model=List[ItemPublic])
 async def read_items(
-    items_per_batch: int = 10,
-    page: int = 1,
-    include_consumed: bool = False,
-    sort_order:str | None = Query(
-        default="created_at:desc",
-        alias="sort",
-        description="Format: field_name:direction (e.g., created_at:asc or created_at:desc)\n Allowed: created_at, priority, title"
-    ),
-    session: SQLSession = Depends(get_session),
-    current_user: User = Depends(get_current_active_user)
+        items_per_batch: int = 10,
+        page: int = 1,
+        include_consumed: bool = False,
+        sort_order: str | None = Query(
+            default="created_at:desc",
+            alias="sort",
+            description="Format: field_name:direction (e.g., created_at:asc or created_at:desc)\n Allowed: created_at, priority, title"
+        ),
+        session: SQLSession = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
 ):
     offset = (page - 1) * items_per_batch
     statement = select(Item).where(Item.user_id == current_user.id)
@@ -88,13 +84,14 @@ async def read_items(
     statement = statement.offset(offset).limit(items_per_batch)
     items = session.exec(statement).all()
     return items
+
+
 @router.get("/{item_id}", response_model=ItemPublic)
 async def read_item(
-    item_id: int,
-    session: SQLSession = Depends(get_session),
-    current_user: User = Depends(get_current_active_user)
+        item_id: int,
+        session: SQLSession = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
 ):
-
     statement = select(Item).where(Item.id == item_id, Item.user_id == current_user.id)
     item = session.exec(statement).first()
     if not item:
@@ -102,41 +99,69 @@ async def read_item(
     return item
 
 
-
-@router.get("/search/", response_model=List[Tuple[ItemPublic, float]])
+@router.get("/search/", response_model=List[ItemPublic])
 async def hybrid_search(
-    q: str,
-    source_type: Optional[str] = None,
-    include_consumed: bool = False,
-    session: SQLSession = Depends(get_session),
-    current_user: User = Depends(get_current_active_user)
+        q: Optional[str] = None,
+        source_type: SourceType|None = None,
+        items_per_batch: int = 10,
+        page: int = 1,
+        include_consumed: bool = False,
+        session: SQLSession = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
 ):
-    query_vector = await get_embedding(q)
-    distance_expr = Item.embedding.cosine_distance(query_vector)
-
-    statement = (
-        select(Item, distance_expr)
+    offset = (page - 1) * items_per_batch
+    base_query = (
+        select(Item)
         .where(Item.status == 'completed')
         .where(Item.user_id == current_user.id)
-    )
 
+    )
     if not include_consumed:
-        statement = statement.where(Item.is_consumed == False)
+        base_query = base_query.where(Item.is_consumed == False)
 
     if source_type:
-        statement = statement.where(Item.source_type == source_type)
+        base_query = base_query.where(Item.source_type == source_type)
 
-    statement = statement.order_by(distance_expr).limit(10)
-    results = session.exec(statement).all()
+    if q and len(q.strip()) > 0:
+        query_vector = await get_embedding(q)
+        distance_expr = Item.embedding.cosine_distance(query_vector)
+        vector_query = base_query.add_columns(distance_expr)
+        check_best = vector_query.order_by(distance_expr).limit(1)
+        best_match = session.execute(check_best).first()
 
-    return [(item, round(1 - dist, 4)) for item, dist in results]
+        if not best_match:
+            return []
+
+        min_dist = best_match[1]
+        dynamic_threshold = max(min_dist * 1.25, min_dist + 0.05)
+        statement = (
+            vector_query
+            .where(distance_expr <= dynamic_threshold)
+            .order_by(distance_expr)
+            .offset(offset)
+            .limit(items_per_batch)
+        )
+
+        results = session.exec(statement).all()
+        return [item for item in results]
+
+    else:
+        statement = (
+            base_query
+            .order_by(Item.created_at.desc())
+            .offset(offset)
+            .limit(items_per_batch)
+        )
+
+        results = session.exec(statement).all()
+        return [item for item in results]
 
 
 @router.delete("/{item_id}", status_code=204)
 async def delete_item(
-    item_id: int,
-    session: SQLSession = Depends(get_session),
-    current_user: User = Depends(get_current_active_user)
+        item_id: int,
+        session: SQLSession = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
 ):
     item = session.get(Item, item_id)
     if not item:
@@ -163,7 +188,7 @@ async def toggle_consume_status(
     if item.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Nie masz uprawnień do edycji tego elementu.")
 
-    if item.is_consumed!= is_consumed:
+    if item.is_consumed != is_consumed:
         item.is_consumed = not item.is_consumed
 
     if item.is_consumed:

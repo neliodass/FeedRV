@@ -8,9 +8,14 @@ from sqlmodel import SQLModel, Field,Column,JSON,Relationship
 def format_datetime(dt: datetime) -> str:
     print(dt)
     return dt.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-class SortOrder(str, Enum):
-    newest = "newest"
-    oldest = "oldest"
+class SourceType(str, Enum):
+    youtube = "youtube"
+    article = "article"
+    reddit = "reddit"
+    rss = "rss"
+    other = "other"
+
+
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)

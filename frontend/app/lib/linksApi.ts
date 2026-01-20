@@ -50,12 +50,36 @@ export const linksApi = {
         sort_by: 'created_at' | 'title' | 'priority' = 'created_at',
         sort_order: 'asc' | 'desc' = 'desc',
     ): Promise<SavedLink[]> {
-        const params: any = { page, items_per_batch };
+        const params: { page: number; items_per_batch: number; sort?: string } = { page, items_per_batch };
         if(sort_by && sort_order) {
             params.sort = `${sort_by}:${sort_order}`;
         }
 
         const response = await api.get("/items/", { params });
+        return response.data;
+    },
+    async searchSavedLinks(
+        page: number = 1,
+        items_per_batch: number = 10,
+        q?: string,
+        source_type?: 'youtube' | 'article' | 'reddit' | 'rss' | 'other',
+        include_consumed: boolean = false,
+    ): Promise<SavedLink[]> {
+        const params: {
+            page: number;
+            items_per_batch: number;
+            include_consumed: boolean;
+            q?: string;
+            source_type?: 'youtube' | 'article' | 'reddit' | 'rss' | 'other';
+        } = { page, items_per_batch, include_consumed };
+        if (q && q.length > 0) {
+            params.q = q;
+        }
+        if (source_type) {
+            params.source_type = source_type;
+        }
+
+        const response = await api.get("/items/search/", { params });
         return response.data;
     },
 
