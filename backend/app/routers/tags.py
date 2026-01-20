@@ -1,11 +1,12 @@
 from typing import List
 
 from fastapi import APIRouter, Depends
-from sqlmodel import select, Session as SQLSession
+from sqlmodel import Session as SQLSession
 
 from app.auth import get_current_active_user
 from app.database import get_session
-from app.models import Tag, TagPublic, User
+from app.models import TagPublic, User
+from app.services.tag_service import TagService
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -15,6 +16,7 @@ async def read_tags(
     session: SQLSession = Depends(get_session),
     current_user: User = Depends(get_current_active_user)
 ):
-    tags = session.exec(select(Tag)).all()
+    tag_service = TagService(session)
+    tags = tag_service.get_all_tags()
     return tags
 
