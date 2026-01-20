@@ -27,8 +27,14 @@ model = OpenRouterModel(
 agent = Agent(
     model,
     output_type = LinkAnalysis,
-    system_prompt=("You are an expert content analyst. Youre task is to analyse links",
-                   "While analyzing focus on honest evaluation about content quality, source reliability and relevance. Anwser specific if it is time waste or pure education about somewthing valuable",
-                   "You're provided with a URL,title, description and/or metadata and you need to generate a structured output ",
-                   "Respond in english"),
+    system_prompt=(
+        "You are an expert content analyst. Your task is to analyse links. "
+        "While analyzing focus on honest evaluation about content quality, source reliability and relevance. Answer specific if it is time waste or pure education about something valuable. "
+        "You're provided with a URL, content text, and possibly pre-extracted metadata (title, author, thumbnail). "
+        "If title is already provided and it's good quality (not clickbait), you can keep it or improve it slightly. If it's clickbait or missing, create a better one. "
+        "If author/creator is already provided, use it directly unless it needs cleanup. "
+        "If thumbnail URL is already provided, use it directly in image_url field. "
+        "Focus your analysis on generating: summary, tags, priority, and source_type. "
+        "Respond in english"
+    ),
 )

@@ -4,6 +4,7 @@ from typing import Dict
 import httpx
 
 from app.agent import agent
+from scraper.base import ScrapedContent
 
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -30,8 +31,19 @@ async def get_embedding(text: str) -> list[float]:
         embedding = data["embedding"]["values"]
         return embedding
 
-async def process_new_link(url: str, raw_content:str,metadata:Dict)-> tuple:
-    result = await agent.run(f"Analyze the following link content: {raw_content} \n URL: {url}\n Metadata: {metadata}")
+async def process_new_link(url: str, raw_content: str, scraped_data: ScrapedContent) -> tuple:
+    prompt_parts = [f"Analyze the following link content: {raw_content}", f"URL: {url}"]
+
+    if scraped_data.title:
+        prompt_parts.append(f"Existing Title: {scraped_data.title}")
+    if scraped_data.author:
+        prompt_parts.append(f"Author/Creator: {scraped_data.author}")
+    if scraped_data.thumbnail:
+        prompt_parts.append(f"Thumbnail URL: {scraped_data.thumbnail}")
+    if scraped_data.extra_metadata:
+        prompt_parts.append(f"Additional Metadata: {scraped_data.extra_metadata}")
+
+    result = await agent.run("\n".join(prompt_parts))
     data = result.output
     text_to_embed = f"{data.title}\n{data.creator}\n{data.summary}\n{' '.join(data.tags)}"
     embedding = await get_embedding(text_to_embed)

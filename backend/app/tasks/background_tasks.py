@@ -1,7 +1,5 @@
 import asyncio
-from typing import Optional
 from sqlmodel import select, Session as SQLSession
-from datetime import datetime, UTC
 
 from app.database import engine
 from app.models import Item, Tag
@@ -27,12 +25,15 @@ async def process_item_with_retry(
                         session.add(item)
                         session.commit()
 
+                print(f"[{item_id}] Starting scrape for URL: {url}")
                 scraped_content = await factory.scrape(url)
+                print(f"[{item_id}] Scrape complete, processing with AI...")
                 ai_data, embedding = await process_new_link(
                     url,
                     scraped_content.text[:5000],
-                    metadata=scraped_content.metadata
+                    scraped_content
                 )
+                print(f"[{item_id}] AI processing complete, updating database...")
 
                 item = session.get(Item, item_id)
                 if not item:
@@ -49,9 +50,9 @@ async def process_item_with_retry(
                 item.status = 'completed'
                 if ai_data.image_url and ai_data.image_url.strip():
                     item.image_url = ai_data.image_url
-                elif scraped_content.images:
-                    item.image_url = scraped_content.images[0]
-                item.item_metadata = scraped_content.metadata
+                elif scraped_content.thumbnail:
+                    item.image_url = scraped_content.thumbnail
+                item.item_metadata = scraped_content.extra_metadata
 
                 for tag_name in ai_data.tags:
                     tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
@@ -66,8 +67,10 @@ async def process_item_with_retry(
                 return
 
             except Exception as e:
+                import traceback
                 error_msg = f"Error processing item {item_id} (attempt {attempt + 1}/{max_retries}): {str(e)}"
                 print(error_msg)
+                print(traceback.format_exc())
                 if attempt == max_retries - 1:
                     try:
                         item = session.get(Item, item_id)

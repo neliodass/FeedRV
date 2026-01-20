@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
 class ScrapedContent:
     text: str
-    metadata: dict
+    title: Optional[str] = None
+    author: Optional[str] = None
+    thumbnail: Optional[str] = None
+    extra_metadata: dict = field(default_factory=dict)
 
 
 class ContentScraper(ABC):
