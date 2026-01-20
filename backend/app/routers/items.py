@@ -54,7 +54,7 @@ async def read_items(
         session: SQLSession = Depends(get_session),
         current_user: User = Depends(get_current_active_user)
 ):
-    offset = (page - 1) * items_per_batch
+    offset = max(0, (page - 1) * items_per_batch)
     statement = select(Item).where(Item.user_id == current_user.id)
 
     if not include_consumed:

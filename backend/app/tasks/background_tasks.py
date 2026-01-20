@@ -1,7 +1,5 @@
 import asyncio
-from typing import Optional
 from sqlmodel import select, Session as SQLSession
-from datetime import datetime, UTC
 
 from app.database import engine
 from app.models import Item, Tag
@@ -31,7 +29,7 @@ async def process_item_with_retry(
                 ai_data, embedding = await process_new_link(
                     url,
                     scraped_content.text[:5000],
-                    metadata=scraped_content.metadata
+                    scraped_content
                 )
 
                 item = session.get(Item, item_id)
@@ -49,9 +47,9 @@ async def process_item_with_retry(
                 item.status = 'completed'
                 if ai_data.image_url and ai_data.image_url.strip():
                     item.image_url = ai_data.image_url
-                elif scraped_content.images:
-                    item.image_url = scraped_content.images[0]
-                item.item_metadata = scraped_content.metadata
+                elif scraped_content.thumbnail:
+                    item.image_url = scraped_content.thumbnail
+                item.item_metadata = scraped_content.extra_metadata
 
                 for tag_name in ai_data.tags:
                     tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
