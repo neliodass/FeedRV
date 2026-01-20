@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from sqlmodel import Session
 
 from app.repositories.item_repository import ItemRepository
-from app.models import Item, ItemUpdate, SourceType
+from app.models import Item, SourceType
+from app.dto import ItemUpdate
 
 
 class ItemService:

@@ -4,7 +4,8 @@ from sqlmodel import Session as SQLSession
 
 from app.auth import get_current_active_user
 from app.database import get_session
-from app.models import UserCreate, UserPublic, User
+from app.models import User
+from app.dto import UserCreate, UserPublic
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])

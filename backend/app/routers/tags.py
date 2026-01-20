@@ -5,7 +5,8 @@ from sqlmodel import Session as SQLSession
 
 from app.auth import get_current_active_user
 from app.database import get_session
-from app.models import TagPublic, User
+from app.models import User
+from app.dto import TagPublic
 from app.services.tag_service import TagService
 
 router = APIRouter(prefix="/tags", tags=["tags"])

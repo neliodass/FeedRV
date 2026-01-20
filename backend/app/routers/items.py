@@ -1,12 +1,13 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, BackgroundTasks, Query
 
 from sqlmodel import Session as SQLSession
 
 from app.auth import get_current_active_user
 from app.database import get_session
-from app.models import ItemPublic, User, ItemUpdate, SourceType
+from app.models import User, SourceType
+from app.dto import ItemPublic, ItemUpdate
 from app.services.item_service import ItemService
 from app.services.embedding_service import get_embedding
 from app.tasks.background_tasks import process_item_with_retry
