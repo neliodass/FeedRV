@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {Card, CardContent} from "@/components/ui/card";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
 import {
     Sheet,
     SheetContent,
@@ -9,9 +9,9 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
-import { Play, CheckCircle2, Circle, Trash2, ExternalLink, Star } from "lucide-react";
-import { SavedLink, linksApi } from "@/app/lib/linksApi";
-import { useState } from "react";
+import {Play, CheckCircle2, Circle, Trash2, ExternalLink, Star} from "lucide-react";
+import {SavedLink, linksApi} from "@/app/lib/linksApi";
+import {useState} from "react";
 
 interface SavedItemCardProps {
     item: SavedLink;
@@ -19,7 +19,7 @@ interface SavedItemCardProps {
     onDelete?: (itemId: number) => void;
 }
 
-export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) {
+export function SavedItemCard({item, onUpdate, onDelete}: SavedItemCardProps) {
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
@@ -90,8 +90,9 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
     return (
         <>
             <Card className="overflow-hidden hover:border-primary/50 transition-colors">
-                {isYoutube && thumbnail && (
-                    <a href={item.url} target={"_blank"} rel={"noopener noreferrer"} onClick={(e) => e.stopPropagation()}>
+                {thumbnail && (
+                    <a href={item.url} target={"_blank"} rel={"noopener noreferrer"}
+                       onClick={(e) => e.stopPropagation()}>
                         <div className="relative aspect-video bg-slate-200 dark:bg-slate-800">
                             <Image
                                 src={thumbnail}
@@ -101,11 +102,16 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                                 loading="lazy"
                                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-all z-10">
-                                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-primary">
-                                    <Play className="h-6 w-6 ml-1" />
+                            {isYoutube && (
+                                <div
+                                    className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-all z-10">
+                                    <div
+                                        className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-primary">
+                                        <Play className="h-6 w-6 ml-1"/>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+
                         </div>
                     </a>
                 )}
@@ -151,12 +157,12 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                         >
                             {item.is_consumed ? (
                                 <>
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    <CheckCircle2 className="h-3.5 w-3.5"/>
                                     <span className="text-xs">Consumed</span>
                                 </>
                             ) : (
                                 <>
-                                    <Circle className="h-3.5 w-3.5" />
+                                    <Circle className="h-3.5 w-3.5"/>
                                     <span className="text-xs">Mark Read</span>
                                 </>
                             )}
@@ -198,9 +204,11 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                                     className="object-cover"
                                     sizes="(max-width: 768px) 100vw, 700px"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-all">
-                                    <div className="w-20 h-20 rounded-full bg-white/95 flex items-center justify-center text-primary shadow-xl">
-                                        <Play className="h-10 w-10 ml-1.5" />
+                                <div
+                                    className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-all">
+                                    <div
+                                        className="w-20 h-20 rounded-full bg-white/95 flex items-center justify-center text-primary shadow-xl">
+                                        <Play className="h-10 w-10 ml-1.5"/>
                                     </div>
                                 </div>
                             </a>
@@ -208,7 +216,8 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
 
                         {/* URL */}
                         <div className="bg-muted/50 rounded-lg p-4">
-                            <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wide">Source URL</h3>
+                            <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wide">Source
+                                URL</h3>
                             <a
                                 href={item.url}
                                 target="_blank"
@@ -216,14 +225,15 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                                 className="text-sm text-primary hover:underline flex items-start gap-2 break-all font-medium"
                             >
                                 <span className="flex-1">{item.url}</span>
-                                <ExternalLink className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                <ExternalLink className="h-4 w-4 flex-shrink-0 mt-0.5"/>
                             </a>
                         </div>
 
                         {/* Summary */}
                         {item.summary && (
                             <div>
-                                <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3 tracking-wide">AI Summary</h3>
+                                <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3 tracking-wide">AI
+                                    Summary</h3>
                                 <p className="text-base text-foreground leading-relaxed">
                                     {item.summary}
                                 </p>
@@ -243,22 +253,23 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                         {/* Priority Score */}
                         {item.priority !== undefined && (
                             <div className={`rounded-lg p-5 border ${
-                                item.priority >= 7 
+                                item.priority >= 7
                                     ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800'
                                     : item.priority >= 5
-                                    ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800'
-                                    : 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-200 dark:border-red-800'
+                                        ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800'
+                                        : 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-200 dark:border-red-800'
                             }`}>
-                                <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-4 tracking-wide">Content Quality Score</h3>
+                                <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-4 tracking-wide">Content
+                                    Quality Score</h3>
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2">
                                         <Star className={`h-6 w-6 ${
                                             item.priority >= 7
                                                 ? 'text-green-500 fill-green-500'
                                                 : item.priority >= 5
-                                                ? 'text-yellow-500 fill-yellow-500'
-                                                : 'text-red-500 fill-red-500'
-                                        }`} />
+                                                    ? 'text-yellow-500 fill-yellow-500'
+                                                    : 'text-red-500 fill-red-500'
+                                        }`}/>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-4xl font-bold text-foreground">{item.priority}</span>
                                             <span className="text-lg text-muted-foreground">/10</span>
@@ -271,10 +282,10 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                                                     item.priority >= 7
                                                         ? 'bg-gradient-to-r from-green-400 to-emerald-500'
                                                         : item.priority >= 5
-                                                        ? 'bg-gradient-to-r from-yellow-400 to-orange-400'
-                                                        : 'bg-gradient-to-r from-red-400 to-rose-500'
+                                                            ? 'bg-gradient-to-r from-yellow-400 to-orange-400'
+                                                            : 'bg-gradient-to-r from-red-400 to-rose-500'
                                                 }`}
-                                                style={{ width: `${(item.priority / 10) * 100}%` }}
+                                                style={{width: `${(item.priority / 10) * 100}%`}}
                                             />
                                         </div>
                                     </div>
@@ -284,7 +295,8 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
 
                         {/* Status */}
                         <div>
-                            <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3 tracking-wide">Processing Status</h3>
+                            <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3 tracking-wide">Processing
+                                Status</h3>
                             <Badge
                                 variant={item.status === "completed" ? "default" : "secondary"}
                                 className="capitalize text-sm px-3 py-1"
@@ -337,12 +349,12 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                                     "Updating..."
                                 ) : item.is_consumed ? (
                                     <>
-                                        <Circle className="h-5 w-5 mr-2" />
+                                        <Circle className="h-5 w-5 mr-2"/>
                                         Mark as Unread
                                     </>
                                 ) : (
                                     <>
-                                        <CheckCircle2 className="h-5 w-5 mr-2" />
+                                        <CheckCircle2 className="h-5 w-5 mr-2"/>
                                         Mark as Consumed
                                     </>
                                 )}
@@ -359,7 +371,7 @@ export function SavedItemCard({ item, onUpdate, onDelete }: SavedItemCardProps) 
                                     "Deleting..."
                                 ) : (
                                     <>
-                                        <Trash2 className="h-5 w-5 mr-2" />
+                                        <Trash2 className="h-5 w-5 mr-2"/>
                                         Delete Item
                                     </>
                                 )}
