@@ -39,7 +39,6 @@ class YouTubeScraper(ContentScraper):
         except Exception as e:
             raise Exception(f"Error fetching oEmbed data: {str(e)}")
 
-        text_content = await TextExtractor.extract(url) or ""
         thumbnail = data['thumbnail_url']
         author = data['author_name']
         title = data['title']
@@ -47,6 +46,5 @@ class YouTubeScraper(ContentScraper):
 
         return ScrapedContent(
             text=transcript,
-            images=[],
             metadata={"video_id": video_id, "type": "youtube", "author": author, "title": title, "thumbnail": thumbnail}
         )

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 @dataclass
 class ScrapedContent:
     text: str
-    images: list[str]
     metadata: dict
 
 

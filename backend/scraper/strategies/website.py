@@ -1,6 +1,6 @@
 from ..base import ContentScraper, ScrapedContent
 from ..extractors.text_exctractor import TextExtractor
-from ..extractors.image_extractor import ImageExtractor
+from ..extractors.thumbnail_extractor import ThumbnailExtractor
 
 
 class WebsiteScraper(ContentScraper):
@@ -12,10 +12,9 @@ class WebsiteScraper(ContentScraper):
         if not text_content:
             raise ValueError("No content could be extracted from the URL")
 
-        images = await ImageExtractor.extract(url)
+        thumbnail = await ThumbnailExtractor.extract(url)
 
         return ScrapedContent(
             text=text_content,
-            images=images,
-            metadata={"type": "website"}
+            metadata={"type": "website", "thumbnail": thumbnail}
         )
