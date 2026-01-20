@@ -9,7 +9,8 @@ from passlib.context import CryptContext
 from sqlmodel import Session as SQLSession, select
 
 from app.database import get_session
-from app.models import User, TokenData
+from app.models import User
+from app.dto import TokenData
 
 ACCESS_SECRET_KEY = os.getenv("ACCESS_SECRET_KEY", "your-secret-key-change-in-production-please-use-strong-key")
 REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY", "your-secret-key-change-in-production-please-use-strong-key")

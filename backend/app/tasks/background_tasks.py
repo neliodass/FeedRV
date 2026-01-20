@@ -3,8 +3,8 @@ from sqlmodel import select, Session as SQLSession
 
 from app.database import engine
 from app.models import Item, Tag
-from app.services import process_new_link
 from scraper.scraper_factory import ScraperFactory
+from app.services.content_processing_service import process_new_link
 
 
 async def process_item_with_retry(
